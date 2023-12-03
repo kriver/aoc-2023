@@ -15,3 +15,19 @@ where
         .map(|l| l.unwrap().parse().unwrap())
         .collect()
 }
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
+pub struct Coord2D {
+    pub x: i32,
+    pub y: i32,
+}
+
+impl Coord2D {
+    pub fn new(x: i32, y: i32) -> Self {
+        Coord2D { x, y }
+    }
+}
+
+pub fn char2num(ascii: char) -> u8 {
+    ascii as u8 - '0' as u8
+}

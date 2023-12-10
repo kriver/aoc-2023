@@ -4,8 +4,8 @@ use crate::util::{char2num, load, Coord2D};
 
 #[derive(Debug)]
 struct Parts {
-    part_nums: HashMap<Coord2D, Vec<u32>>,
-    pub parts: HashMap<Coord2D, char>,
+    part_nums: HashMap<Coord2D<i32>, Vec<u32>>,
+    pub parts: HashMap<Coord2D<i32>, char>,
 }
 
 impl Parts {
@@ -82,7 +82,7 @@ impl Parts {
         })
     }
 
-    fn part_number_sum(&self, _part: &char, c: &Coord2D) -> u32 {
+    fn part_number_sum(&self, _part: &char, c: &Coord2D<i32>) -> u32 {
         // println!("Checking [{}] at {:?} -> {:?}", _part, c, self.part_nums.get(c));
         match self.part_nums.get(c) {
             Some(v) => v.iter().sum(),
@@ -90,7 +90,7 @@ impl Parts {
         }
     }
 
-    fn part_number_product(&self, _part: &char, c: &Coord2D) -> u32 {
+    fn part_number_product(&self, _part: &char, c: &Coord2D<i32>) -> u32 {
         // println!("Checking [{}] at {:?} -> {:?}", _part, c, self.part_nums.get(c));
         match self.part_nums.get(c) {
             Some(v) if v.len() == 2 => v.iter().product(),

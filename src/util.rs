@@ -17,13 +17,13 @@ where
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
-pub struct Coord2D {
-    pub x: i32,
-    pub y: i32,
+pub struct Coord2D<T> {
+    pub x: T,
+    pub y: T,
 }
 
-impl Coord2D {
-    pub fn new(x: i32, y: i32) -> Self {
+impl<T> Coord2D<T> {
+    pub fn new(x: T, y: T) -> Self {
         Coord2D { x, y }
     }
 }

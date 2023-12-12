@@ -1,8 +1,8 @@
 use std::{iter::repeat, str::FromStr};
 
-use itertools::Itertools;
-
 use crate::util::load;
+use itertools::Itertools;
+use rayon::prelude::*;
 
 #[derive(Debug)]
 struct Springs {
@@ -111,7 +111,12 @@ pub fn part1() -> usize {
 pub fn part2() -> usize {
     let springs = input();
     springs
-        .into_iter()
+        .into_par_iter()
+        .enumerate()
+        .map(|(i, s)| {
+            println!("{}: {:?}", i, s);
+            s
+        })
         .map(|s| unfold(s))
         .map(|s| s.count_arrangements())
         .sum()

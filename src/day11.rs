@@ -1,23 +1,15 @@
 use itertools::Itertools;
 use std::collections::HashSet;
 
-use crate::util::{load, Coord2D};
+use crate::util::{load_grid_map, Coord2D};
 
 type Coord = Coord2D<usize>;
 type Galaxies = HashSet<Coord>;
 
 fn input() -> Galaxies {
-    let lines = load::<String>("data/day11.txt");
-    lines
-        .into_iter()
-        .enumerate()
-        .flat_map(|(y, l)| {
-            l.chars()
-                .enumerate()
-                .filter(|(_, c)| *c == '#')
-                .map(|(x, _)| Coord2D::new(x, y))
-                .collect::<HashSet<_>>()
-        })
+    load_grid_map("data/day11.txt", |c| if c == '#' { Some(()) } else { None })
+        .keys()
+        .cloned()
         .collect()
 }
 

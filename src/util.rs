@@ -1,7 +1,21 @@
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs::File;
+use std::hash::Hash;
 use std::io::{BufRead, BufReader};
 use std::str::FromStr;
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
+pub struct Coord2D<T> {
+    pub x: T,
+    pub y: T,
+}
+
+impl<T> Coord2D<T> {
+    pub fn new(x: T, y: T) -> Self {
+        Coord2D { x, y }
+    }
+}
 
 pub fn load<T>(filename: &str) -> Vec<T>
 where
@@ -16,16 +30,30 @@ where
         .collect()
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
-pub struct Coord2D<T> {
-    pub x: T,
-    pub y: T,
-}
-
-impl<T> Coord2D<T> {
-    pub fn new(x: T, y: T) -> Self {
-        Coord2D { x, y }
-    }
+/**
+ * T: coordinate type
+ * S: single grid square type
+ * F: a function producing a Option<S> from a char
+ */
+pub fn load_grid_map<T, S, F>(filename: &str, into_square: F) -> HashMap<Coord2D<T>, S>
+where
+    T: Eq + Hash + From<usize>,
+    F: Fn(char) -> Option<S>,
+{
+    load::<String>(filename)
+        .into_iter()
+        .enumerate()
+        .flat_map(|(y, l)| {
+            l.chars()
+                .enumerate()
+                .filter_map(|(x, c)| {
+                    // try_into().unwrap() for usize -> T
+                    let coord = Coord2D::new(x.try_into().unwrap(), y.try_into().unwrap());
+                    into_square(c).map(|s| (coord, s))
+                })
+                .collect::<HashMap<_, _>>()
+        })
+        .collect()
 }
 
 pub fn char2num(ascii: char) -> u8 {

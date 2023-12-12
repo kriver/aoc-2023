@@ -1,4 +1,4 @@
-use std::{collections::HashSet, iter::repeat, str::FromStr};
+use std::{iter::repeat, str::FromStr};
 
 use itertools::Itertools;
 
@@ -27,7 +27,7 @@ impl FromStr for Springs {
 }
 
 impl Springs {
-    fn arrangements(&self) -> HashSet<String> {
+    fn arrangements(&self) -> usize {
         fn can_fit(pat: &[char], dmgd: usize) -> bool {
             dmgd == pat
                 .iter()
@@ -36,7 +36,7 @@ impl Springs {
                 .count()
         }
 
-        fn fit_dmgd(res: &mut HashSet<String>, pat: &[char], dmgd: &[usize], cur: &mut Vec<char>) {
+        fn fit_dmgd(res: &mut usize, pat: &[char], dmgd: &[usize]) {
             if dmgd.is_empty() {
                 return;
             }
@@ -46,58 +46,46 @@ impl Springs {
             if can_fit(pat, range)
                 && (!there_is_more || (pat.len() > range + 1 && pat[range] != '#'))
             {
-                (0..range).for_each(|_| cur.push('#'));
                 let mut start = range;
                 if there_is_more {
                     // also ensure we have a '.' following if more to fill
-                    cur.push('.');
                     start += 1;
                 }
-                recurse(res, &pat[start..], &dmgd[1..], cur);
-                if there_is_more {
-                    cur.pop();
-                }
-                (0..range).for_each(|_| {
-                    cur.pop();
-                });
+                recurse(res, &pat[start..], &dmgd[1..]);
             }
         }
 
-        fn recurse(res: &mut HashSet<String>, pat: &[char], dmgd: &[usize], cur: &mut Vec<char>) {
+        fn recurse(res: &mut usize, pat: &[char], dmgd: &[usize]) {
             if pat.is_empty() {
                 if dmgd.is_empty() {
-                    res.insert(cur.iter().collect());
+                    *res += 1;
                 }
             } else {
                 match pat[0] {
                     '.' => {
                         // skip forward
-                        cur.push('.');
-                        recurse(res, &pat[1..], dmgd, cur);
-                        cur.pop();
+                        recurse(res, &pat[1..], dmgd);
                     }
-                    '#' => fit_dmgd(res, pat, dmgd, cur),
+                    '#' => fit_dmgd(res, pat, dmgd),
                     '?' => {
                         // try operational
-                        cur.push('.');
-                        recurse(res, &pat[1..], dmgd, cur);
-                        cur.pop();
+                        recurse(res, &pat[1..], dmgd);
                         // try damaged
-                        fit_dmgd(res, pat, dmgd, cur);
+                        fit_dmgd(res, pat, dmgd);
                     }
                     _ => unreachable!(),
                 }
             }
         }
-        let mut results = HashSet::new();
+        let mut results = 0usize;
         // println!("{:?}", self.pattern);
-        recurse(&mut results, &self.pattern, &self.ranges, &mut vec![]);
+        recurse(&mut results, &self.pattern, &self.ranges);
         // println!("{:?}", results);
         results
     }
 
     pub fn count_arrangements(&self) -> usize {
-        self.arrangements().len()
+        self.arrangements()
     }
 }
 
@@ -166,8 +154,8 @@ mod tests {
         assert_eq!(part1(), 8193);
     }
 
-    // #[test]
-    // fn test_part2() {
-    //     assert_eq!(part2(), 0);
-    // }
+    #[test]
+    fn test_part2() {
+        assert_eq!(part2(), 0);
+    }
 }

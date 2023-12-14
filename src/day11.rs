@@ -8,6 +8,7 @@ type Galaxies = HashSet<Coord>;
 
 fn input() -> Galaxies {
     load_grid_map("data/day11.txt", |c| if c == '#' { Some(()) } else { None })
+        .squares
         .keys()
         .cloned()
         .collect()

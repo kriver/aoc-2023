@@ -33,27 +33,40 @@ where
 /**
  * T: coordinate type
  * S: single grid square type
- * F: a function producing a Option<S> from a char
  */
-pub fn load_grid_map<T, S, F>(filename: &str, into_square: F) -> HashMap<Coord2D<T>, S>
+#[derive(Debug)]
+pub struct Grid<T, S> {
+    pub width: usize,
+    pub height: usize,
+    pub squares: HashMap<Coord2D<T>, S>,
+}
+
+pub fn load_grid_map<T, S, F>(filename: &str, into_square: F) -> Grid<T, S>
 where
     T: Eq + Hash + From<usize>,
     F: Fn(char) -> Option<S>,
 {
-    load::<String>(filename)
-        .into_iter()
-        .enumerate()
-        .flat_map(|(y, l)| {
-            l.chars()
-                .enumerate()
-                .filter_map(|(x, c)| {
-                    // try_into().unwrap() for usize -> T
-                    let coord = Coord2D::new(x.try_into().unwrap(), y.try_into().unwrap());
-                    into_square(c).map(|s| (coord, s))
-                })
-                .collect::<HashMap<_, _>>()
-        })
-        .collect()
+    let lines = load::<String>(filename);
+    let height = lines.len();
+    let width = lines[0].len();
+    Grid {
+        width,
+        height,
+        squares: lines
+            .into_iter()
+            .enumerate()
+            .flat_map(|(y, l)| {
+                l.chars()
+                    .enumerate()
+                    .filter_map(|(x, c)| {
+                        // try_into().unwrap() for usize -> T
+                        let coord = Coord2D::new(x.try_into().unwrap(), y.try_into().unwrap());
+                        into_square(c).map(|s| (coord, s))
+                    })
+                    .collect::<HashMap<_, _>>()
+            })
+            .collect(),
+    }
 }
 
 pub fn char2num(ascii: char) -> u8 {

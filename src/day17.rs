@@ -24,7 +24,7 @@ const DIRS: &[Direction; 4] = &[
     Direction::WEST,
 ];
 
-#[derive(Debug, Eq)]
+#[derive(Debug, Eq, Clone, Copy)]
 struct State {
     cost: usize,
     pos: Coord,
@@ -66,7 +66,7 @@ impl State {
             Direction::SOUTH => 3,
             Direction::WEST => 4,
         };
-        (self.cost as i32) << 20
+        (self.cost as i32) << 22
             | (self.cnt_straight as i32) << 18
             | d << 16
             | (self.pos.x << 8)
@@ -97,8 +97,8 @@ impl PartialOrd for State {
     }
 }
 
-fn input() -> Map {
-    load::<String>("data/day17.txt")
+fn input(file: &str) -> Map {
+    load::<String>(file)
         .into_iter()
         .map(|l| l.chars().map(|c| char2num(c) as usize).collect())
         .collect()
@@ -113,6 +113,7 @@ struct Crucible {
 }
 
 impl Move for Crucible {
+    // need to move maximum 3 in same dir, no U-turn
     fn step(&self, s: &State, d: &Direction) -> Option<State> {
         match d {
             Direction::NORTH
@@ -142,6 +143,72 @@ impl Move for Crucible {
                     && (s.dir != Direction::WEST || s.cnt_straight < 3) =>
             {
                 Some(s.step(&self.map, &d, -1, 0))
+            }
+            _ => None,
+        }
+    }
+}
+
+struct UltraCrucible {
+    map: Map,
+}
+
+impl Move for UltraCrucible {
+    // need to move minimum 4 and maximum 10 in same dir, no U-turn
+    fn step(&self, s: &State, d: &Direction) -> Option<State> {
+        fn steps(d1: &Direction, d2: &Direction) -> usize {
+            if d1 != d2 {
+                4
+            } else {
+                1
+            }
+        }
+        let width = self.map[0].len() as i32;
+        let height = self.map.len() as i32;
+        match d {
+            Direction::NORTH
+                if s.pos.y > 0
+                    && s.dir != Direction::SOUTH
+                    && ((s.dir != Direction::NORTH && s.pos.y >= 4)
+                        || (s.dir == Direction::NORTH && s.cnt_straight < 10)) =>
+            {
+                Some(
+                    (0..steps(&s.dir, &Direction::NORTH))
+                        .fold(*s, |acc, _| acc.step(&self.map, &d, 0, -1)),
+                )
+            }
+            Direction::EAST
+                if s.pos.x < width - 1
+                    && s.dir != Direction::WEST
+                    && ((s.dir != Direction::EAST && s.pos.x < width - 4)
+                        || (s.dir == Direction::EAST && s.cnt_straight < 10)) =>
+            {
+                Some(
+                    (0..steps(&s.dir, &Direction::EAST))
+                        .fold(*s, |acc, _| acc.step(&self.map, &d, 1, 0)),
+                )
+            }
+            Direction::SOUTH
+                if s.pos.y < height - 1
+                    && s.dir != Direction::NORTH
+                    && ((s.dir != Direction::SOUTH && s.pos.y < height - 4)
+                        || (s.dir == Direction::SOUTH && s.cnt_straight < 10)) =>
+            {
+                Some(
+                    (0..steps(&s.dir, &Direction::SOUTH))
+                        .fold(*s, |acc, _| acc.step(&self.map, &d, 0, 1)),
+                )
+            }
+            Direction::WEST
+                if s.pos.x > 0
+                    && s.dir != Direction::EAST
+                    && ((s.dir != Direction::WEST && s.pos.x >= 4)
+                        || (s.dir == Direction::WEST && s.cnt_straight < 10)) =>
+            {
+                Some(
+                    (0..steps(&s.dir, &Direction::WEST))
+                        .fold(*s, |acc, _| acc.step(&self.map, &d, -1, 0)),
+                )
             }
             _ => None,
         }
@@ -184,15 +251,19 @@ fn travel(movable: impl Move, dst: Coord, mut q: BinaryHeap<State>) -> usize {
 }
 
 pub fn part1() -> usize {
+    let map = input("data/day17.txt");
     let mut q = BinaryHeap::new();
     q.push(State::new(0, 0, Direction::EAST));
-    let map = input();
     let dst = Coord2D::new(map[0].len() as i32 - 1, map.len() as i32 - 1);
     travel(Crucible { map }, dst, q)
 }
 
 pub fn part2() -> usize {
-    0
+    let map = input("data/day17.txt");
+    let mut q = BinaryHeap::new();
+    q.push(State::new(0, 0, Direction::EAST));
+    let dst = Coord2D::new(map[0].len() as i32 - 1, map.len() as i32 - 1);
+    travel(UltraCrucible { map }, dst, q)
 }
 
 #[cfg(test)]
@@ -206,6 +277,6 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(), 0);
+        assert_eq!(part2(), 894);
     }
 }

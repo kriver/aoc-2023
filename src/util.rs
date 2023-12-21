@@ -34,7 +34,7 @@ where
  * T: coordinate type
  * S: single grid square type
  */
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Grid<T, S> {
     pub width: T,
     pub height: T,

@@ -1,6 +1,6 @@
 use crate::util::{Coord2D, Grid};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 enum StepCount {
     ODD,
     EVEN,
@@ -27,11 +27,11 @@ fn find_start(g: &Garden) -> Coord {
         .unwrap()
 }
 
-fn flood_fill(g: &mut Garden, steps: usize, start: Coord, finite: bool) {
+fn flood_fill(g: &mut Garden, steps: usize, start: Coord) -> usize {
     let deltas: &[(i32, i32)] = &[(-1, 0), (1, 0), (0, -1), (0, 1)];
     let mut q = vec![start];
     for i in 1..=steps {
-        let mut newq = vec![];
+        let mut new_q = vec![];
         while !q.is_empty() {
             let Coord { x, y } = q.pop().unwrap();
             for (dx, dy) in deltas {
@@ -39,39 +39,60 @@ fn flood_fill(g: &mut Garden, steps: usize, start: Coord, finite: bool) {
                     x: x + dx,
                     y: y + dy,
                 };
-                if finite && (c.x < 0 || c.y < 0 || c.x >= g.width || c.y >= g.height) {
+                if c.x < 0 || c.y < 0 || c.x >= g.width || c.y >= g.height {
                     continue;
                 }
-                let small_c = Coord {
-                    x: c.x.rem_euclid(g.width),
-                    y: c.y.rem_euclid(g.height),
-                };
-                if let Some(_) = g.squares.get(&small_c) {
-                    // valid grid point
-                    match g.squares.get(&c) {
-                        None | Some(StepCount::UNKNOWN) => {
-                            // unvisited grid point
-                            let oe = if i % 2 == 0 {
-                                StepCount::EVEN
-                            } else {
-                                StepCount::ODD
-                            };
-                            g.squares.insert(c.clone(), oe);
-                            newq.push(c);
-                        }
-                        _ => (),
-                    }
+                if let Some(StepCount::UNKNOWN) = g.squares.get(&c) {
+                    // unvisited grid point
+                    let oe = if i % 2 == 0 {
+                        StepCount::EVEN
+                    } else {
+                        StepCount::ODD
+                    };
+                    g.squares.insert(c.clone(), oe);
+                    new_q.push(c);
                 }
             }
         }
-        // println!("After {} steps:", i);
-        q.append(&mut newq);
-        // println!("q: {:?}", q);
-        // dump(g);
+        q.append(&mut new_q);
     }
+    g.squares
+        .iter()
+        .filter(|(_, sc)| **sc == StepCount::EVEN)
+        .count()
 }
 
-fn dump(g: &Garden) {
+/* shape is a diamond
+    -  65 steps: touching borders at center of boundaries:
+                (65,0), (65,130), (0,65), (130,65)
+    - 130 steps: filling full initial grid
+    - 132 steps: first step onto corner touching grid (+ 2)
+    How does it grow from center and corners?
+    Start from corner (0,0)
+    - 130 steps: fill half (diagonally)
+    - 260 steps: fill completely (130 + 130)
+    Start from center (0,65)
+    - 132 steps: touch opposite boundary
+    - 133 steps: first step off opposite center (+ 1)
+    - 195 steps: fill completely (130 + 65)
+    - 197 steps: first step onto corner touching grid (+ 2)
+*/
+fn flood_part2(garden: Garden) -> usize {
+    fn steps_for(g: &Garden, steps: usize, c: Coord) -> usize {
+        let mut c = g.clone();
+        flood_fill(&mut c, steps, Coord2D::new(65, 65))
+    }
+    let steps = 26501365;
+    let completely_filled = steps_for(&garden, 130, Coord2D::new(65, 65));
+    println!("center: {:?}", completely_filled);
+    println!(
+        "center left: {:?}",
+        steps_for(&garden, 65, Coord2D::new(0, 65))
+    );
+    0
+}
+
+fn _dump(g: &Garden) {
     (0..g.height).into_iter().for_each(|y| {
         print!("\t");
         (0..g.width).into_iter().for_each(|x| {
@@ -90,23 +111,12 @@ fn dump(g: &Garden) {
 pub fn part1() -> usize {
     let mut garden = input("data/day21.txt");
     let start = find_start(&garden);
-    flood_fill(&mut garden, 64, start, true);
-    garden
-        .squares
-        .into_iter()
-        .filter(|(_, sc)| *sc == StepCount::EVEN)
-        .count()
+    flood_fill(&mut garden, 64, start)
 }
 
 pub fn part2() -> usize {
-    let mut garden = input("data/test.txt");
-    let start = find_start(&garden);
-    flood_fill(&mut garden, 1000, start, false);
-    garden
-        .squares
-        .into_iter()
-        .filter(|(_, sc)| *sc == StepCount::EVEN)
-        .count()
+    let garden = input("data/day21.txt");
+    flood_part2(garden)
 }
 
 #[cfg(test)]

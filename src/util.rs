@@ -36,36 +36,41 @@ where
  */
 #[derive(Debug)]
 pub struct Grid<T, S> {
-    pub width: usize,
-    pub height: usize,
+    pub width: T,
+    pub height: T,
     pub squares: HashMap<Coord2D<T>, S>,
 }
 
-pub fn load_grid_map<T, S, F>(filename: &str, into_square: F) -> Grid<T, S>
-where
-    T: Eq + Hash + From<usize>,
-    F: Fn(char) -> Option<S>,
-{
-    let lines = load::<String>(filename);
-    let height = lines.len();
-    let width = lines[0].len();
-    Grid {
-        width,
-        height,
-        squares: lines
-            .into_iter()
-            .enumerate()
-            .flat_map(|(y, l)| {
-                l.chars()
-                    .enumerate()
-                    .filter_map(|(x, c)| {
-                        // try_into().unwrap() for usize -> T
-                        let coord = Coord2D::new(x.try_into().unwrap(), y.try_into().unwrap());
-                        into_square(c).map(|s| (coord, s))
-                    })
-                    .collect::<HashMap<_, _>>()
-            })
-            .collect(),
+impl<T, S> Grid<T, S> {
+    pub fn from_file<F>(filename: &str, into_square: F) -> Self
+    where
+        T: Eq + Hash + From<u8>,
+        F: Fn(char) -> Option<S>,
+    {
+        let lines = load::<String>(filename);
+        let height = lines.len();
+        let width = lines[0].len();
+        Grid {
+            width: (width as u8).try_into().unwrap(),
+            height: (height as u8).try_into().unwrap(),
+            squares: lines
+                .into_iter()
+                .enumerate()
+                .flat_map(|(y, l)| {
+                    l.chars()
+                        .enumerate()
+                        .filter_map(|(x, c)| {
+                            // try_into().unwrap() for usize -> T
+                            let coord = Coord2D::new(
+                                (x as u8).try_into().unwrap(),
+                                (y as u8).try_into().unwrap(),
+                            );
+                            into_square(c).map(|s| (coord, s))
+                        })
+                        .collect::<HashMap<_, _>>()
+                })
+                .collect(),
+        }
     }
 }
 

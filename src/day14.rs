@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Display};
 
 use itertools::Itertools;
 
-use crate::util::{load_grid_map, Coord2D, Grid};
+use crate::util::{Coord2D, Grid};
 
 #[derive(Debug, PartialEq, Eq)]
 enum Square {
@@ -11,7 +11,7 @@ enum Square {
 }
 
 fn input() -> Grid<usize, Square> {
-    load_grid_map::<usize, Square, _>("data/day14.txt", |c| match c {
+    Grid::from_file("data/day14.txt", |c| match c {
         '.' => None,
         '#' => Some(Square::FIXED),
         'O' => Some(Square::MOVING),

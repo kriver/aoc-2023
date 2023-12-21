@@ -1,13 +1,13 @@
 use itertools::Itertools;
 use std::collections::HashSet;
 
-use crate::util::{load_grid_map, Coord2D};
+use crate::util::{Coord2D, Grid};
 
 type Coord = Coord2D<usize>;
 type Galaxies = HashSet<Coord>;
 
 fn input() -> Galaxies {
-    load_grid_map("data/day11.txt", |c| if c == '#' { Some(()) } else { None })
+    Grid::from_file("data/day11.txt", |c| if c == '#' { Some(()) } else { None })
         .squares
         .keys()
         .cloned()

@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fmt::Display};
 
-use crate::util::{load_grid_map, Coord2D, Grid};
+use crate::util::{Coord2D, Grid};
 
 type Coord = Coord2D<usize>;
 
@@ -143,7 +143,7 @@ impl Display for Grid<usize, Square> {
 
 impl Grid<usize, Square> {
     fn load() -> Self {
-        load_grid_map::<usize, Square, _>("data/day16.txt", |c| match c {
+        Grid::from_file("data/day16.txt", |c| match c {
             '.' => Some(Square::new(Object::NONE)),
             '|' => Some(Square::new(Object::VERTICAL)),
             '-' => Some(Square::new(Object::HORIZONTAL)),

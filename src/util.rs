@@ -17,6 +17,19 @@ impl<T> Coord2D<T> {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Default)]
+pub struct Coord3D<T> {
+    pub x: T,
+    pub y: T,
+    pub z: T,
+}
+
+impl<T> Coord3D<T> {
+    pub fn new(x: T, y: T, z: T) -> Self {
+        Coord3D { x, y, z }
+    }
+}
+
 pub fn load<T>(filename: &str) -> Vec<T>
 where
     T: FromStr,

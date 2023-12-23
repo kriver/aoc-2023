@@ -11,7 +11,7 @@ enum Square {
 }
 
 fn input() -> Grid<usize, Square> {
-    Grid::from_file("data/day14.txt", |c| match c {
+    Grid::from_file("data/day14.txt", |c, _| match c {
         '.' => None,
         '#' => Some(Square::FIXED),
         'O' => Some(Square::MOVING),

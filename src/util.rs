@@ -58,7 +58,7 @@ impl<T, S> Grid<T, S> {
     pub fn from_file<F>(filename: &str, into_square: F) -> Self
     where
         T: Eq + Hash + From<u8>,
-        F: Fn(char) -> Option<S>,
+        F: Fn(char, &Coord2D<T>) -> Option<S>,
     {
         let lines = load::<String>(filename);
         let height = lines.len();
@@ -78,7 +78,7 @@ impl<T, S> Grid<T, S> {
                                 (x as u8).try_into().unwrap(),
                                 (y as u8).try_into().unwrap(),
                             );
-                            into_square(c).map(|s| (coord, s))
+                            into_square(c, &coord).map(|s| (coord, s))
                         })
                         .collect::<HashMap<_, _>>()
                 })

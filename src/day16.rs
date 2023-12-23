@@ -143,7 +143,7 @@ impl Display for Grid<usize, Square> {
 
 impl Grid<usize, Square> {
     fn load() -> Self {
-        Grid::from_file("data/day16.txt", |c| match c {
+        Grid::from_file("data/day16.txt", |c, _| match c {
             '.' => Some(Square::new(Object::NONE)),
             '|' => Some(Square::new(Object::VERTICAL)),
             '-' => Some(Square::new(Object::HORIZONTAL)),

@@ -7,7 +7,7 @@ type Coord = Coord2D<usize>;
 type Galaxies = HashSet<Coord>;
 
 fn input() -> Galaxies {
-    Grid::from_file("data/day11.txt", |c| if c == '#' { Some(()) } else { None })
+    Grid::from_file("data/day11.txt", |c, _| if c == '#' { Some(()) } else { None })
         .squares
         .keys()
         .cloned()

@@ -5,6 +5,8 @@ use std::{
     str::FromStr,
 };
 
+use itertools::Itertools;
+
 use crate::util::{load, Coord3D};
 
 type Coord = Coord3D<usize>;
@@ -168,7 +170,30 @@ pub fn part1() -> usize {
 }
 
 pub fn part2() -> usize {
-    0
+    let bricks = input("data/day22.txt");
+    let cnt = bricks.len();
+    let (_, supports, supported_by) = drop(bricks);
+    let mut sum = 0;
+    for brick in 1..=cnt {
+        let mut falling = HashSet::from([brick]);
+        let mut next_lvl = supports.get(&brick).unwrap().iter().collect_vec();
+        loop {
+            let mut nxt = vec![];
+            for b in next_lvl.drain(0..) {
+                let sb = supported_by.get(b).unwrap();
+                if sb.difference(&falling).collect::<HashSet<_>>().is_empty() {
+                    falling.insert(*b);
+                    supports.get(b).unwrap().iter().for_each(|i| nxt.push(i));
+                }
+            }
+            next_lvl.append(&mut nxt);
+            if next_lvl.is_empty() {
+                break;
+            }
+        }
+        sum += falling.len() - 1; // -1 for the disintegrated one
+    }
+    sum
 }
 
 #[cfg(test)]
@@ -181,6 +206,6 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(), 0);
+        assert_eq!(part2(), 88156);
     }
 }

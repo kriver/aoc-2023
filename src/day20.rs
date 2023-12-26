@@ -43,7 +43,7 @@ impl Display for Pulse {
 #[derive(Debug)]
 enum ModuleType {
     FlipFlop(bool),
-    Conjunction(u64),
+    Conjunction(u64, Option<usize>),
     Broadcaster,
     Rx(usize),
 }
@@ -52,7 +52,7 @@ impl Display for ModuleType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ModuleType::FlipFlop(state) => write!(f, "FF({})", if *state { "on" } else { "off" }),
-            ModuleType::Conjunction(state) => write!(f, "CJ({})", state),
+            ModuleType::Conjunction(state, _) => write!(f, "CJ({})", state),
             ModuleType::Broadcaster => write!(f, "BC"),
             ModuleType::Rx(cnt) => write!(f, "RX({})", cnt),
         }
@@ -77,7 +77,7 @@ impl Display for Module {
 }
 
 impl Module {
-    fn receive(&mut self, pulse: &Pulse) -> Vec<Pulse> {
+    fn receive(&mut self, pulse: &Pulse, it: usize) -> Vec<Pulse> {
         // println!(
         //     "\t{:?}({}) (src={}, dst={})",
         //     self.name, self.id_mask, pulse.src_mask, pulse.dst_mask
@@ -89,17 +89,22 @@ impl Module {
                     None
                 } else {
                     // println!("\t`-> with state {} -> {}", state, !state);
-                    self.mt = ModuleType::FlipFlop(!state);
-                    Some(!state)
+                    let new_state = !state;
+                    self.mt = ModuleType::FlipFlop(new_state);
+                    Some(new_state)
                 }
             }
-            ModuleType::Conjunction(state) => {
+            ModuleType::Conjunction(state, i) => {
                 let new_state = set_bit(state, pulse.src_mask, pulse.high);
                 // println!("\t`-> with state {} -> {}", state, new_state);
-                self.mt = ModuleType::Conjunction(new_state);
                 if new_state & self.src_mask == self.src_mask {
+                    match i {
+                        None => self.mt = ModuleType::Conjunction(new_state, Some(it)),
+                        _ => self.mt = ModuleType::Conjunction(new_state, i),
+                    }
                     Some(false)
                 } else {
+                    self.mt = ModuleType::Conjunction(new_state, i);
                     Some(true)
                 }
             }
@@ -127,7 +132,7 @@ fn input(file: &str) -> (u64, u64, Modules) {
         .map(|tokens| {
             let (name, mt) = match tokens[0].chars().next().unwrap() {
                 '%' => (tokens[0][1..].to_string(), ModuleType::FlipFlop(false)),
-                '&' => (tokens[0][1..].to_string(), ModuleType::Conjunction(0)),
+                '&' => (tokens[0][1..].to_string(), ModuleType::Conjunction(0, None)),
                 _ => (tokens[0].to_string(), ModuleType::Broadcaster),
             };
             (name, mt, tokens[1].to_string())
@@ -206,7 +211,7 @@ fn input(file: &str) -> (u64, u64, Modules) {
     )
 }
 
-fn push_button(mods: &mut Modules, broadcaster: u64) -> (usize, usize) {
+fn push_button(mods: &mut Modules, broadcaster: u64, it: usize) -> (usize, usize) {
     let (mut lo, mut hi) = (0, 0);
     let initial = Pulse::new(9999, broadcaster, false);
     let mut pulses = vec![initial];
@@ -222,7 +227,7 @@ fn push_button(mods: &mut Modules, broadcaster: u64) -> (usize, usize) {
             .flat_map(|p| {
                 // println!("{}", p);
                 match mods.get_mut(&p.dst_mask) {
-                    Some(m) => m.receive(&p),
+                    Some(m) => m.receive(&p, it),
                     None => vec![],
                 }
             })
@@ -239,41 +244,52 @@ fn repeat_until_all_low(broadcaster: u64, mut modules: Modules) -> (usize, usize
     let mut it = 0;
     loop {
         it += 1;
-        let (nlo, nhi) = push_button(&mut modules, broadcaster);
+        let (nlo, nhi) = push_button(&mut modules, broadcaster, it);
         lo += nlo;
         hi += nhi;
         let all_low = modules.values().all(|m| match m.mt {
             ModuleType::Broadcaster => true,
             ModuleType::FlipFlop(state) => state == false,
-            ModuleType::Conjunction(state) => state == 0,
+            ModuleType::Conjunction(state, _) => state == 0,
             ModuleType::Rx(_) => true,
         });
         if all_low {
             break;
         }
         if it == 1000 {
-            println!("Reached 1000 iterations");
             break;
         }
     }
     (it, lo, hi)
 }
 
-fn repeat_until_rx_low(broadcaster: u64, rx: u64, mut modules: Modules) -> usize {
+fn repeat_until_rx_low(broadcaster: u64, mut modules: Modules) -> usize {
+    let nodes = modules
+        .values()
+        .filter(|m| m.name == "bl" || m.name == "mr" || m.name == "pv" || m.name == "vv")
+        .map(|m| m.id_mask)
+        .collect_vec();
     let mut it = 0;
-    loop {
+    let its = loop {
         it += 1;
-        let (_, _) = push_button(&mut modules, broadcaster);
-        if let ModuleType::Rx(cnt) = modules.get(&rx).unwrap().mt {
-            if cnt > 0 {
-                break;
-            }
+        let _ = push_button(&mut modules, broadcaster, it);
+        let (all_low, its) = nodes.iter().map(|id| modules.get(id).unwrap()).fold(
+            (true, vec![]),
+            |(low, mut v), m| {
+                if let ModuleType::Conjunction(_, Some(i)) = m.mt {
+                    v.push(i);
+                    (low & true, v)
+                } else {
+                    (false, v)
+                }
+            },
+        );
+        if all_low {
+            break its;
         }
-        if it % 1000 == 0 {
-            println!("Running for {} iterations...", it);
-        }
-    }
-    it
+    };
+    println!("Stopped after {} iterations {:?}...", it, its);
+    its.into_iter().product()
 }
 
 pub fn part1() -> usize {
@@ -287,8 +303,8 @@ pub fn part1() -> usize {
 }
 
 pub fn part2() -> usize {
-    let (bc, rx, modules) = input("data/day20.txt");
-    repeat_until_rx_low(bc, rx, modules)
+    let (bc, _, modules) = input("data/day20.txt");
+    repeat_until_rx_low(bc, modules)
 }
 
 #[cfg(test)]
@@ -302,6 +318,6 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        assert_eq!(part2(), 0);
+        assert_eq!(part2(), 243081086866483);
     }
 }
